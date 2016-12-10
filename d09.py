@@ -27,49 +27,45 @@
 from collections import deque
 
 
-class Reader():
-    def __init__(self, file_handle):
-        self.fh = file_handle
-        self.queue = deque()
+def get_cmpstr_len(comp_seq):
+    if not comp_seq:
+        return 0
 
-    def read(self, length):
-        char = ''
-        for _ in range(length):
-            try:
-                char += self.queue.popleft()
-            except IndexError:
-                char += self.fh.read(1)
-        return char
+    if comp_seq[0] == '(':
 
-    def write(self, seq):
-        self.queue.extendleft(reversed(seq))
+        comp_seq.popleft()
+        pattern = ''
+        while True:
+            pattern_char = comp_seq.popleft()
+            if pattern_char == ')':
+                break
+            else:
+                pattern += pattern_char
+
+        length, count = (int(n) for n in pattern.split('x'))
+        rep_seq = deque(comp_seq.popleft() for _ in range(length))
+        return count * get_cmpstr_len(rep_seq) + get_cmpstr_len(comp_seq)
+
+    else:
+        comp_seq.popleft()
+        return 1 + get_cmpstr_len(comp_seq)
 
 
-size = 0
+
+d = deque('(3x3)XYZ')
+assert get_cmpstr_len(d) == len('XYZXYZXYZ')
+
+d = deque('X(8x2)(3x3)ABCY')
+assert get_cmpstr_len(d) == len('XABCABCABCABCABCABCY')
+
+d = deque('(27x12)(20x12)(13x14)(7x10)(1x12)A')
+assert get_cmpstr_len(d) == 241920
+
+d = deque('(25x3)(3x3)ABC(2x3)XY(5x2)PQRSTX(18x9)(3x2)TWO(5x7)SEVEN')
+assert get_cmpstr_len(d) == 445
+
+
 with open('d09.txt') as f:
-    filequeue = Reader(f)
-    while True:
-        c = filequeue.read(1)
-        if not c:
-            break
+    d = deque(f.read())
 
-        if c == '(':
-            pattern = ''
-            while True:
-                pattern_char = filequeue.read(1)
-                if pattern_char == ')':
-                    break
-                else:
-                    pattern += pattern_char
-
-            length, count = (int(n) for n in pattern.split('x'))
-            repstr = filequeue.read(length)  # throw away this string now
-            filequeue.write(repstr*count)
-
-        else:
-            size += 1
-
-        if size % 100000 == 0:
-            print(size // 100000, len(filequeue.queue), f.tell())
-
-print(size, end='\n\n')
+print(get_cmpstr_len(d))
