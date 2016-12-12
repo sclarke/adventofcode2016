@@ -6,7 +6,7 @@ from itertools import combinations, chain
 
 import attr
 
-with open('d11_part2.txt') as fh:
+with open('d11_test.txt') as fh:
     raw_input = fh.readlines()
 
 generator_pattern = re.compile(r'(\w+) generator')
@@ -50,6 +50,26 @@ def configuration_valid(floor_set):
     return True
 
 
+@lru_cache(maxsize=2 ** 20)
+def configuration_signature(floor_set):
+    """Calculates a signature for a given configuration.
+
+    Generates the same signature for `similar` configurations (one generator/microchip pair is swapped with another).
+    """
+
+    generators_ordered = [device for floor in floor_set for device in floor if device.islower()]
+
+    signature = 0
+    for level, floor in enumerate(floor_set):
+        for device in floor:
+            if device.islower():
+                signature += 4 ** generators_ordered.index(device) * level
+            else:
+                signature += 4 ** (generators_ordered.index(device.lower()) + len(generators_ordered)) * level
+
+    return signature
+
+
 @lru_cache(maxsize=2**20)
 def one_or_two_from(floor_set):
     return list(chain(combinations(floor_set, 1),
@@ -62,7 +82,7 @@ elevator = Elevator(1)
 move = 0
 cases[move].append((elevator, tuple(floors)))
 all_cases = set()
-all_cases.add((elevator, tuple(floors)))
+all_cases.add((elevator, configuration_signature(tuple(floors))))
 
 while cases[move]:
     for elevator, floors in cases[move]:
@@ -85,9 +105,9 @@ while cases[move]:
                         next_floors.append(copy(floor))
 
                 if all(configuration_valid(floor) for floor in next_floors):
-                    new_case = (next_elevator_move, tuple(next_floors))
+                    new_case = (next_elevator_move, configuration_signature(tuple(next_floors)))
                     if new_case not in all_cases:
-                        cases[move + 1].append(new_case)
+                        cases[move + 1].append((next_elevator_move, tuple(next_floors)))
                         all_cases.add(new_case)
 
     move += 1
