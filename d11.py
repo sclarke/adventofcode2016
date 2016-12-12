@@ -1,23 +1,21 @@
-import re
 from collections import defaultdict
 from copy import copy
 from functools import lru_cache
 from itertools import combinations, chain
+from re import compile
 
 import attr
 
-with open('d11_test.txt') as fh:
-    raw_input = fh.readlines()
-
-generator_pattern = re.compile(r'(\w+) generator')
-microchip_pattern = re.compile(r'(\w+)-compatible microchip')
+generator_pattern = compile(r'(\w+) generator')
+microchip_pattern = compile(r'(\w+)-compatible microchip')
 
 floors = []
 
-for line in raw_input:
-    generators = (match.lower() for match in generator_pattern.findall(line))
-    microchips = (match.upper() for match in microchip_pattern.findall(line))
-    floors.append(tuple(sorted(chain(generators, microchips))))
+with open('d11_test.txt') as fh:
+    for line in fh:
+        generators = (match.lower() for match in generator_pattern.findall(line))
+        microchips = (match.upper() for match in microchip_pattern.findall(line))
+        floors.append(tuple(sorted(chain(generators, microchips))))
 
 
 @lru_cache(maxsize=8)
@@ -35,22 +33,14 @@ class Elevator(object):
 
 
 @lru_cache(maxsize=2**20)
-def loose_generators(floor_set):
-    for generator in (device for device in floor_set if device.islower()):
-        if generator.upper() not in floor_set:
-            return True
-    return False
-
-
-@lru_cache(maxsize=2**20)
 def configuration_valid(floor_set):
     for microchip in (device for device in floor_set if device.isupper()):
-        if not microchip.lower() in floor_set and loose_generators(floor_set):
+        if not microchip.lower() in floor_set and [device for device in floor_set if device.islower()]:
             return False
     return True
 
 
-@lru_cache(maxsize=2 ** 20)
+@lru_cache(maxsize=2**20)
 def configuration_signature(floor_set):
     """Calculates a signature for a given configuration.
 
